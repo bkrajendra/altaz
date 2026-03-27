@@ -1,0 +1,163 @@
+<ion-header class="altaz-header">
+  <ion-toolbar color="dark">
+    <ion-title>
+      <span class="app-title">&#9728; AltAz</span>
+      <span class="app-subtitle">Dobsonian Scope Tracker</span>
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button *ngIf="isTracking" (click)="stopTracking()" color="danger" fill="solid" size="small">
+        Stop
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="altaz-content">
+
+  <!-- Star field background -->
+  <svg class="star-field" xmlns="http://www.w3.org/2000/svg">
+    <circle *ngFor="let s of stars"
+      [attr.cx]="s.x + '%'"
+      [attr.cy]="s.y + '%'"
+      [attr.r]="s.r"
+      [attr.opacity]="s.op"
+      fill="white"/>
+  </svg>
+
+  <!-- Permission / Start screen -->
+  <div class="start-screen" *ngIf="!isTracking && !permissionDenied">
+    <div class="scope-icon">🔭</div>
+    <h2>Dobsonian AltAz Tracker</h2>
+    <p>Mount your phone on the telescope tube.<br>
+       As you rotate the tube, the app reads<br>
+       azimuth &amp; altitude from device sensors.</p>
+    <ion-button expand="block" color="primary" size="large" (click)="requestPermission()" class="start-btn">
+      <ion-icon name="navigate-outline" slot="start"></ion-icon>
+      Start Tracking
+    </ion-button>
+    <p class="hint" *ngIf="!browserSupport">
+      &#9888; DeviceOrientation API not available in this browser.
+    </p>
+  </div>
+
+  <div class="denied-screen" *ngIf="permissionDenied">
+    <div class="scope-icon">&#9888;</div>
+    <h2>Sensor Access Denied</h2>
+    <p>Please allow motion &amp; orientation access<br>in your browser settings, then reload.</p>
+  </div>
+
+  <!-- Main tracking UI -->
+  <div class="tracker-ui" *ngIf="isTracking">
+
+    <!-- Compass rose -->
+    <div class="compass-wrapper">
+      <div class="compass-ring">
+        <span class="cardinal n">N</span>
+        <span class="cardinal e">E</span>
+        <span class="cardinal s">S</span>
+        <span class="cardinal w">W</span>
+
+        <!-- Rotating dial -->
+        <div class="compass-dial" [style.transform]="'rotate(' + compassAngle + 'deg)'">
+          <svg viewBox="0 0 200 200" class="compass-svg" xmlns="http://www.w3.org/2000/svg">
+            <!-- Major ticks every 30° -->
+            <line *ngFor="let t of compassTicks" [attr.x1]="t.x1" [attr.y1]="t.y1" [attr.x2]="t.x2" [attr.y2]="t.y2"
+                  stroke="#4fc3f7" [attr.stroke-width]="t.major ? 2 : 1" [attr.opacity]="t.major ? 1 : 0.5"/>
+            <!-- Degree labels every 30° -->
+            <text *ngFor="let l of compassLabels"
+              [attr.x]="l.x" [attr.y]="l.y"
+              text-anchor="middle" fill="#b0bec5" font-size="9" font-family="monospace">{{l.text}}</text>
+          </svg>
+        </div>
+
+        <!-- Fixed needle -->
+        <div class="needle-wrapper">
+          <svg viewBox="0 0 200 200" class="needle-svg" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="100,28 93,108 107,108" fill="#ef5350"/>
+            <polygon points="100,172 93,108 107,108" fill="#37474f"/>
+            <circle cx="100" cy="108" r="7" fill="#90a4ae"/>
+          </svg>
+        </div>
+
+        <!-- Center readout -->
+        <div class="compass-center">
+          <div class="az-value">{{ formatDeg(azimuth) }}</div>
+          <div class="az-label">{{ cardinalDirection }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Altitude arc -->
+    <div class="alt-arc-wrapper">
+      <svg viewBox="0 0 300 165" class="alt-svg" xmlns="http://www.w3.org/2000/svg">
+        <line x1="15" y1="143" x2="285" y2="143" stroke="#546e7a" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="15" y="157" fill="#546e7a" font-size="10" font-family="monospace">0° Horizon</text>
+        <text x="215" y="157" fill="#546e7a" font-size="10" font-family="monospace">90° Zenith</text>
+
+        <!-- Track -->
+        <path d="M 30 143 A 120 120 0 0 1 270 143" fill="none" stroke="#1e2a38" stroke-width="16"/>
+        <!-- Fill -->
+        <path [attr.d]="altArcPath()" fill="none" [attr.stroke]="altitudeColor" stroke-width="16" stroke-linecap="round"/>
+
+        <!-- Zenith marker -->
+        <line x1="150" y1="18" x2="150" y2="30" stroke="#4fc3f7" stroke-width="2"/>
+        <text x="150" y="15" text-anchor="middle" fill="#4fc3f7" font-size="9" font-family="monospace">Zenith</text>
+
+        <!-- Tube dot -->
+        <circle [attr.cx]="altDotX()" [attr.cy]="altDotY()" r="9" [attr.fill]="altitudeColor"
+                [attr.filter]="'drop-shadow(0 0 4px ' + altitudeColor + ')'"/>
+
+        <text x="20" y="138" fill="#78909c" font-size="9" font-family="monospace">W</text>
+        <text x="274" y="138" fill="#78909c" font-size="9" font-family="monospace">E</text>
+      </svg>
+    </div>
+
+    <!-- Coordinate cards -->
+    <div class="coord-cards">
+
+      <div class="coord-card az-card">
+        <div class="card-icon">🧭</div>
+        <div class="card-label">Azimuth</div>
+        <div class="card-value">{{ formatDeg(azimuth) }}</div>
+        <div class="card-sub">{{ cardinalDirection }}</div>
+        <div class="progress-bar">
+          <div class="progress-fill az-fill" [style.width]="azimuthBarWidth + '%'"></div>
+        </div>
+        <div class="progress-range"><span>0°</span><span>360°</span></div>
+      </div>
+
+      <div class="coord-card alt-card">
+        <div class="card-icon">📐</div>
+        <div class="card-label">Altitude</div>
+        <div class="card-value" [style.color]="altitudeColor">{{ formatDeg(altitude) }}</div>
+        <div class="card-sub">{{ altitudeLabel }}</div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width]="altitudeBarWidth + '%'" [style.background]="altitudeColor"></div>
+        </div>
+        <div class="progress-range"><span>-90°</span><span>+90°</span></div>
+      </div>
+
+    </div>
+
+    <!-- Roll indicator -->
+    <div class="roll-card">
+      <span class="roll-label">Roll</span>
+      <div class="roll-bar-wrapper">
+        <div class="roll-center-mark"></div>
+        <div class="roll-indicator" [style.left]="rollBarPos + '%'"></div>
+      </div>
+      <span class="roll-value">{{ formatDeg(roll) }}</span>
+    </div>
+
+    <!-- Summary bar -->
+    <div class="summary-bar">
+      <span>Alt: <strong>{{ formatDeg(altitude) }}</strong></span>
+      <span class="divider">|</span>
+      <span>Az: <strong>{{ formatDeg(azimuth) }}</strong></span>
+      <span class="divider">|</span>
+      <span>{{ cardinalDirection }} &bull; {{ altitudeLabel }}</span>
+    </div>
+
+  </div>
+
+</ion-content>
