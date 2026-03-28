@@ -99,9 +99,9 @@ export class HomePage implements OnInit, OnDestroy {
     this.azimuth = this.circularMean(this.azBuffer);
 
     // --- Altitude from beta (phone lying flat = 0°, vertical = 90°) ---
-    // When phone is mounted on telescope tube vertically:
-    // beta ≈ 90 means tube pointing at zenith, beta ≈ 0 means horizontal
-    let alt = beta - 90;
+    // Phone is mounted parallel to telescope tube (taped to side):
+    // beta ≈ 0 means tube pointing at horizon, beta ≈ 90 means zenith
+    let alt = beta;
     alt = Math.max(-90, Math.min(90, alt));
     this.altBuffer.push(alt);
     if (this.altBuffer.length > this.SMOOTH) this.altBuffer.shift();
