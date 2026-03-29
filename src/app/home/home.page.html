@@ -1,7 +1,7 @@
-<ion-header class="altaz-header">
+<ion-header class="dobzeye-header">
   <ion-toolbar color="dark">
     <ion-title>
-      <span class="app-title">&#9728; AltAz</span>
+      <span class="app-title">&#9728; DobzEye</span>
       <span class="app-subtitle">Dobsonian Scope Tracker</span>
     </ion-title>
     <ion-buttons slot="end">
@@ -12,7 +12,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="altaz-content">
+<ion-content [fullscreen]="true" class="dobzeye-content">
 
   <!-- Star field background -->
   <svg class="star-field" xmlns="http://www.w3.org/2000/svg">
@@ -27,7 +27,7 @@
   <!-- Permission / Start screen -->
   <div class="start-screen" *ngIf="!isTracking && !permissionDenied">
     <div class="scope-icon">🔭</div>
-    <h2>Dobsonian AltAz Tracker</h2>
+    <h2>DobzEye Scope Tracker</h2>
     <p>Mount your phone on the telescope tube.<br>
        As you rotate the tube, the app reads<br>
        azimuth &amp; altitude from device sensors.</p>
