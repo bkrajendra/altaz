@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone, inject } from '@angular/core';
 
 interface DeviceOrientationEventWithPermission extends DeviceOrientationEvent {
   requestPermission?: () => Promise<string>;
@@ -15,12 +15,18 @@ export class HomePage implements OnInit, OnDestroy {
   altitude = 0;      // -90 to +90 degrees (elevation)
   roll = 0;          // device roll
   compassAngle = 0;  // needle rotation for compass
+  rightAscension = 0; // 0-24 hours
+  declination = 0;    // -90 to +90 degrees
 
   isTracking = false;
   permissionDenied = false;
   browserSupport = true;
+  hasLocation = false;
+  locationLabel = 'Location unavailable';
 
   private orientationHandler: ((e: DeviceOrientationEvent) => void) | null = null;
+  private latitude = 0;
+  private longitude = 0; // East positive
 
   // Smoothing buffers
   private azBuffer: number[] = [];
@@ -29,8 +35,9 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Star field
   stars: { x: number; y: number; r: number; op: number }[] = [];
+  private readonly zone = inject(NgZone);
 
-  constructor(private zone: NgZone) {
+  constructor() {
     this.generateStars();
   }
 
@@ -73,6 +80,7 @@ export class HomePage implements OnInit, OnDestroy {
 
   startTracking() {
     this.isTracking = true;
+    this.captureLocation();
     this.orientationHandler = (e: DeviceOrientationEvent) => {
       this.zone.run(() => this.handleOrientation(e));
     };
@@ -111,6 +119,7 @@ export class HomePage implements OnInit, OnDestroy {
 
     // Compass needle points opposite to azimuth (needle points North)
     this.compassAngle = -this.azimuth;
+    this.updateEquatorialCoordinates();
   }
 
   private mean(arr: number[]): number {
@@ -157,6 +166,109 @@ export class HomePage implements OnInit, OnDestroy {
 
   formatDeg(val: number, decimals = 0): string {
     return val.toFixed(decimals) + '°';
+  }
+
+  formatDeclination(): string {
+    const sign = this.declination >= 0 ? '+' : '-';
+    return `${sign}${Math.abs(this.declination).toFixed(2)}°`;
+  }
+
+  formatRightAscension(): string {
+    const totalSeconds = Math.round(this.normalizeHours(this.rightAscension) * 3600);
+    const secDay = 24 * 3600;
+    const wrapped = ((totalSeconds % secDay) + secDay) % secDay;
+    const h = Math.floor(wrapped / 3600);
+    const m = Math.floor((wrapped % 3600) / 60);
+    const s = wrapped % 60;
+    return `${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+  }
+
+  private captureLocation() {
+    if (!navigator.geolocation) {
+      this.locationLabel = 'Geolocation not supported';
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        this.zone.run(() => {
+          this.latitude = coords.latitude;
+          this.longitude = coords.longitude;
+          this.hasLocation = true;
+          this.locationLabel = `${coords.latitude.toFixed(2)}°, ${coords.longitude.toFixed(2)}°`;
+          this.updateEquatorialCoordinates();
+        });
+      },
+      () => {
+        this.zone.run(() => {
+          this.locationLabel = 'Enable location for accurate RA/Dec';
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  }
+
+  private updateEquatorialCoordinates() {
+    if (!this.hasLocation) {
+      this.rightAscension = 0;
+      this.declination = 0;
+      return;
+    }
+
+    const latRad = this.degToRad(this.latitude);
+    const altRad = this.degToRad(this.altitude);
+    const azRad = this.degToRad(this.azimuth);
+
+    const sinDec = (Math.sin(altRad) * Math.sin(latRad))
+      + (Math.cos(altRad) * Math.cos(latRad) * Math.cos(azRad));
+    const decRad = Math.asin(this.clamp(sinDec, -1, 1));
+
+    const cosDec = Math.cos(decRad);
+    if (Math.abs(cosDec) < 1e-6) {
+      this.declination = this.radToDeg(decRad);
+      this.rightAscension = 0;
+      return;
+    }
+
+    const sinH = -(Math.sin(azRad) * Math.cos(altRad)) / cosDec;
+    const cosH = (Math.sin(altRad) - (Math.sin(latRad) * Math.sin(decRad)))
+      / (Math.cos(latRad) * cosDec);
+    const hourAngleDeg = this.normalizeDegrees(this.radToDeg(Math.atan2(sinH, cosH)));
+    const lstDeg = this.localSiderealTimeDegrees(new Date(), this.longitude);
+    const raDeg = this.normalizeDegrees(lstDeg - hourAngleDeg);
+
+    this.rightAscension = raDeg / 15;
+    this.declination = this.radToDeg(decRad);
+  }
+
+  private localSiderealTimeDegrees(date: Date, longitudeDegEast: number): number {
+    const d = (date.getTime() - Date.UTC(2000, 0, 1, 12, 0, 0, 0)) / 86400000;
+    const t = d / 36525;
+    const gmst = 280.46061837
+      + (360.98564736629 * d)
+      + (0.000387933 * t * t)
+      - ((t * t * t) / 38710000);
+    return this.normalizeDegrees(gmst + longitudeDegEast);
+  }
+
+  private normalizeDegrees(value: number): number {
+    return ((value % 360) + 360) % 360;
+  }
+
+  private normalizeHours(value: number): number {
+    return ((value % 24) + 24) % 24;
+  }
+
+  private degToRad(deg: number): number {
+    return (deg * Math.PI) / 180;
+  }
+
+  private radToDeg(rad: number): number {
+    return (rad * 180) / Math.PI;
+  }
+
+  private clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, value));
   }
 
   // Pre-computed compass tick marks for SVG

@@ -137,6 +137,20 @@
         <div class="progress-range"><span>-90°</span><span>+90°</span></div>
       </div>
 
+      <div class="coord-card eq-card">
+        <div class="card-icon">✨</div>
+        <div class="card-label">Equatorial (JNow)</div>
+        <div class="eq-row">
+          <span>RA</span>
+          <strong>{{ hasLocation ? formatRightAscension() : '--h --m --s' }}</strong>
+        </div>
+        <div class="eq-row">
+          <span>Dec</span>
+          <strong>{{ hasLocation ? formatDeclination() : '--.--°' }}</strong>
+        </div>
+        <div class="card-sub">{{ locationLabel }}</div>
+      </div>
+
     </div>
 
     <!-- Roll indicator -->

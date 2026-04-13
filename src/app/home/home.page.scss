@@ -288,6 +288,52 @@
   }
 }
 
+.eq-card {
+  grid-column: 1 / -1;
+  text-align: left;
+  padding: 0.85rem 1rem;
+
+  .card-icon {
+    margin-bottom: 0.2rem;
+  }
+
+  .card-label {
+    margin-bottom: 0.45rem;
+  }
+
+  .card-sub {
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+    font-size: 0.68rem;
+  }
+}
+
+.eq-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-top: 1px solid rgba(79, 195, 247, 0.15);
+  padding: 0.35rem 0;
+  font-family: 'Courier New', monospace;
+
+  &:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  span {
+    color: var(--muted);
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+  }
+
+  strong {
+    color: #b3e5fc;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+  }
+}
+
 // ===== ROLL INDICATOR =====
 .roll-card {
   display: flex;
