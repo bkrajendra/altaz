@@ -1,8 +1,8 @@
 {
   "name": "dobzeye",
   "version": "0.0.1",
-  "author": "Ionic Framework",
-  "homepage": "https://ionicframework.com/",
+  "author": "Rajendra Khope",
+  "homepage": "https://dobzeye.rajendrakhope.com",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -23,6 +23,7 @@
     "@angular/platform-browser": "^20.0.0",
     "@angular/platform-browser-dynamic": "^20.0.0",
     "@angular/router": "^20.0.0",
+    "@angular/service-worker": "^20.3.19",
     "@capacitor/app": "8.1.0",
     "@capacitor/core": "8.3.0",
     "@capacitor/haptics": "8.0.1",

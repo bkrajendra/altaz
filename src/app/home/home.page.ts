@@ -1,4 +1,7 @@
 import { Component, OnInit, OnDestroy, NgZone, inject } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { SettingsService } from '../services/settings.service';
+import { WakeLockService } from '../services/wake-lock.service';
 
 interface DeviceOrientationEventWithPermission extends DeviceOrientationEvent {
   requestPermission?: () => Promise<string>;
@@ -36,6 +39,10 @@ export class HomePage implements OnInit, OnDestroy {
   // Star field
   stars: { x: number; y: number; r: number; op: number }[] = [];
   private readonly zone = inject(NgZone);
+  private readonly settings = inject(SettingsService);
+  private readonly wakeLock = inject(WakeLockService);
+  private settingsSub: Subscription | null = null;
+  private keepScreenAwakeEnabled = false;
 
   constructor() {
     this.generateStars();
@@ -45,10 +52,24 @@ export class HomePage implements OnInit, OnDestroy {
     if (!window.DeviceOrientationEvent) {
       this.browserSupport = false;
     }
+    this.settingsSub = this.settings.settings$.subscribe(s => {
+      this.keepScreenAwakeEnabled = s.keepScreenAwake;
+      void this.syncWakeLock();
+    });
   }
 
   ngOnDestroy() {
     this.stopTracking();
+    this.settingsSub?.unsubscribe();
+    void this.wakeLock.disable();
+  }
+
+  ionViewDidEnter() {
+    void this.syncWakeLock();
+  }
+
+  ionViewWillLeave() {
+    void this.wakeLock.disable();
   }
 
   generateStars() {
@@ -85,6 +106,7 @@ export class HomePage implements OnInit, OnDestroy {
       this.zone.run(() => this.handleOrientation(e));
     };
     window.addEventListener('deviceorientation', this.orientationHandler, true);
+    void this.syncWakeLock();
   }
 
   stopTracking() {
@@ -93,6 +115,15 @@ export class HomePage implements OnInit, OnDestroy {
       this.orientationHandler = null;
     }
     this.isTracking = false;
+    void this.syncWakeLock();
+  }
+
+  private async syncWakeLock() {
+    if (!this.keepScreenAwakeEnabled || !this.isTracking) {
+      await this.wakeLock.disable();
+      return;
+    }
+    await this.wakeLock.enable();
   }
 
   private handleOrientation(e: DeviceOrientationEvent) {

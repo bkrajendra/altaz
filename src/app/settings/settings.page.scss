@@ -1,0 +1,27 @@
+:host {
+  --bg: #0d1117;
+  --text: #e2e8f0;
+  --muted: #64748b;
+}
+
+.settings-content {
+  --background: var(--bg);
+  --color: var(--text);
+}
+
+ion-list {
+  --background: rgba(22, 27, 34, 0.92);
+  border: 1px solid rgba(79, 195, 247, 0.15);
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+}
+
+ion-item {
+  --background: transparent;
+  --color: var(--text);
+}
+
+ion-label p {
+  color: var(--muted);
+}
+

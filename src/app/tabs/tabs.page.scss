@@ -1,0 +1,11 @@
+ion-tab-bar {
+  --background: rgba(10, 16, 28, 0.72);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+ion-tab-button {
+  --color: rgba(255, 255, 255, 0.72);
+  --color-selected: #8fd3ff;
+}
+

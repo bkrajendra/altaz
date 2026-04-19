@@ -1,0 +1,21 @@
+<ion-header class="dobzeye-header">
+  <ion-toolbar color="dark">
+    <ion-title>Settings</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="settings-content">
+  <ion-list lines="full" inset="true">
+    <ion-item>
+      <ion-label>
+        <h2>Keep screen awake</h2>
+        <p>Prevent the display from sleeping while tracking on Home.</p>
+      </ion-label>
+      <ion-toggle
+        [checked]="keepScreenAwake"
+        (ionChange)="onKeepAwakeChanged($event.detail.checked)">
+      </ion-toggle>
+    </ion-item>
+  </ion-list>
+</ion-content>
+
